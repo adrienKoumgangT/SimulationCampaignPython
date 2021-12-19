@@ -174,10 +174,11 @@ if __name__ == '__main__':
             option = argument.split("=")
             if option[0] == "-name_var":
                 name_variable = int(option[1])
+                var_interest = get_name_variable(name_var=name_variable)
             elif option[0] == "-number_of_initial_node_begin":
                 nb_nodes_begin = int(option[1])
             elif option[0] == "-number_of_initial_node_end":
-                nb_nodes_end = int(option[2])
+                nb_nodes_end = int(option[1])
             elif option[0] == "-nb_node_incremented":
                 nb_nodes_incremented = int(option[1])
             elif option[0] == "-variable_value_begin":
