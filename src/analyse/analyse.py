@@ -1,77 +1,68 @@
 from numpy import *
 from pandas import *
-from matplotlib import pyplot
+import threading
 
 
-def get_name_file(path_access, name_variable, value_node, value_variable):
+def get_name_file(path_access: str, name_variable: str, simulation_index: int, value_variable: int) -> str:
     """
     Fonction qui renvoit le nom d' accès à un fichier résultat d' une simulation
     :param path_access: le chemin d' accès au répertoire où il se trouve
     :param name_variable: le nom de la variable simulée
-    :param value_node: la valeur du nombre de node de la simulation
+    :param simulation_index: la valeur du nombre de node de la simulation
     :param value_variable: la valeur de la variable simulée
 
     :return: {path_access}/res_initial_node_{value_node}_{name_var}_{value_variable}.txt
     """
+    # TODO: change name file to result
+    return f"{path_access}res_{name_variable[1:]}_{value_variable}_simulation_n_{simulation_index}.txt"
 
-    return f"{path_access}/res_initial_node_{value_node}_{name_variable}_{value_variable}.txt"
 
-
-def calcul_during_epidemic(variable_simulator: str, nb_nodes_begin: int, nb_nodes_end: int, incremented_node: int,
-                           values_variables_begin: int, value_variable_end: int, incremented_variable: int,
+def calcul_during_epidemic(variable_simulator: str, nb_simulations: int,
+                           value_variables_begin: int, value_variable_end: int, incremented_variable: int,
                            path_directory: str, file_name_result):
     """
     Fonction qui me permet de calculé la durée de l' épidémie
 
+    :param nb_simulations: Nombre de simulations effectué pour chaque valeur de la variable d' interet
     :param file_name_result: Nom du fichier dans lequel sauvegardé le dataFrame résultat de l' analyse
     :param variable_simulator: la variable simulé dont on veut avoir la durée
-    :param nb_nodes_begin: le nombre de noeuds initial durant la simulation de 'variable simulator'
-    :param nb_nodes_end: le nombre de noeuds final durant la simulation de 'variable simulator'
-    :param incremented_node: l' incrémentation du nombre de noeuds durant la simulation
-    :param values_variables_begin: la valeur initial de la variable simulée
+    :param value_variables_begin: la valeur initial de la variable simulée
     :param value_variable_end: la valeur finale de la variable simulée
     :param incremented_variable: la valeur d' incrémentation de la variable simulée
     :param path_directory: le chemin d' accès aux résultats de la simulations
 
     :return: un dataFrame contenant en index le nombre de node initial et
                 en label la valeur de la variable de simulation:
-            => index = list nodes; label = list valeurs variables; data = le nombre de snapshot
-            ex: nombre initial d'infecté: index = valeurs du nombre de nodes 100 -> 300
+            => index = list des numéros de la simulation; label = list valeurs variables; data = le nombre de snapshot
+            ex: nombre initial d'infecté: index = n-ième simulation
                                         label = valeurs de la variable nombre initial d' infecté 1 -> 100
     """
 
-    if variable_simulator == "infected":
-        variable_name = 'initial_infected'
-    elif variable_simulator == "travel":
-        variable_name = 'initial_travel_distance'
-    elif variable_simulator == "vaccinated":
-        variable_name = 'initial_vaccinated'
-    elif variable_simulator == "vaccine efficiency":
-        variable_name = 'vaccine_efficiency'
-    elif variable_simulator == "infection period":
-        variable_name = 'initial_infection_period'
-    elif variable_simulator == "contagion period":
-        variable_name = 'initial_contagion_period'
-    elif variable_simulator == "immune period":
-        variable_name = 'initial_immune_period'
-    else:
+    if variable_simulator not in {"-nb_infected", "-travel_distance", "-nb_vaccinated", "-vaccine_efficiency",
+                                  "-infection_period", "-contagion_period", "-immune_period"}:
         raise Exception("Variable de simulation non reconnu")
 
+    # supprime la possibilité de cycle infini
+    if incremented_variable <= 0:
+        return
+    if nb_simulations <= 0:
+        return
+
     dict_result = {}
-    my_variable = values_variables_begin
-    while my_variable <= value_variable_end:
-        my_var_node = nb_nodes_begin
-        list_nodes = []
+    my_variable = value_variables_begin
+    while value_variables_begin <= my_variable <= value_variable_end:
+        index_simulation = 1
+        list_index_simulations = []
         list_values = []
-        while my_var_node <= nb_nodes_end:
-            list_nodes.append(my_var_node)
-            with open(get_name_file(path_access=path_directory, name_variable=variable_name, value_node=my_var_node,
-                                    value_variable=my_variable), 'rb') as f:
+        while index_simulation <= nb_simulations:
+            list_index_simulations.append(index_simulation)
+            with open(get_name_file(path_access=path_directory, name_variable=variable_simulator[1:],
+                                    simulation_index=index_simulation, value_variable=my_variable), 'rb') as f:
                 result = f.read().decode('utf-8')
                 list_line = result.split('\n')
                 list_values.append(len(list_line) - 18)
-            my_var_node += incremented_node
-        dict_result[my_variable] = list_values, list_nodes
+            index_simulation += 1
+        dict_result[my_variable] = list_values, list_index_simulations
         my_variable += incremented_variable
     df = DataFrame(dict_result)
     df.to_csv(file_name_result)
@@ -117,126 +108,52 @@ def get_proportion_infected(list_line):
     return len(set_nodes_infected)
 
 
-def calcul_proportion_max_population_infected(variable_simulator: str, nb_nodes_begin: int, nb_nodes_end: int,
-                                              incremented_node: int, values_variables_begin: int,
-                                              value_variable_end: int, incremented_variable: int,
-                                              path_directory: str, file_name_result):
+def calcul_proportion_population_infected(variable_simulator: str, proportion_max: int, nb_simulations: int,
+                                          value_variables_begin: int, value_variable_end: int,
+                                          incremented_variable: int, path_directory: str, file_name_result):
     """
     Fonction qui me permet de calculé la durée de l' épidémie
 
+    :param proportion_max: Variable qui me permet de préciser s'il s'agit d'une proportion maximale ou simple
+    :param nb_simulations: Nombre de simulation faites pour chaque valeur de la variable
     :param file_name_result: Nom du fichier dans lequel sauvegardé le dataFrame résultat de l' analyse
     :param variable_simulator: la variable simulé dont on veut avoir la durée
-    :param nb_nodes_begin: le nombre de noeuds initial durant la simulation de 'variable simulator'
-    :param nb_nodes_end: le nombre de noeuds final durant la simulation de 'variable simulator'
-    :param incremented_node: l' incrémentation du nombre de noeuds durant la simulation
-    :param values_variables_begin: la valeur initial de la variable simulée
+    :param value_variables_begin: la valeur initial de la variable simulée
     :param value_variable_end: la valeur finale de la variable simulée
     :param incremented_variable: la valeur d' incrémentation de la variable simulée
     :param path_directory: le chemin d' accès aux résultats de la simulations
 
     :return: un dataFrame contenant en index le nombre de node initial et
                 en label la valeur de la variable de simulation:
-            => index = list nodes; label = list valeurs variables; data = le nombre de snapshot
-            ex: nombre initial d'infecté: index = valeurs du nombre de nodes 100 -> 300
-                                        label = valeurs de la variable nombre initial d' infecté 1 -> 100
+            => index = list des numéros de la simulation; label = list valeurs variables; data = le nombre de snapshot
+            ex: nombre initial d'infecté: index = n-ième simulation 1 -> 100
+                                          label = valeurs de la variable nombre initial d' infecté 1 -> 100
     """
 
-    if variable_simulator == "infected":
-        variable_name = 'initial_infected'
-    elif variable_simulator == "travel":
-        variable_name = 'initial_travel_distance'
-    elif variable_simulator == "vaccinated":
-        variable_name = 'initial_vaccinated'
-    elif variable_simulator == "vaccine efficiency":
-        variable_name = 'vaccine_efficiency'
-    elif variable_simulator == "infection period":
-        variable_name = 'initial_infection_period'
-    elif variable_simulator == "contagion period":
-        variable_name = 'initial_contagion_period'
-    elif variable_simulator == "immune period":
-        variable_name = 'initial_immune_period'
-    else:
+    if variable_simulator not in {"-nb_infected", "-travel_distance", "-nb_vaccinated", "-vaccine_efficiency",
+                                  "-infection_period", "-contagion_period", "-immune_period"}:
         raise Exception("Variable de simulation non reconnu")
 
     dict_result = {}
-    my_variable = values_variables_begin
-    while my_variable <= value_variable_end:
-        my_var_node = nb_nodes_begin
-        list_nodes = []
+    my_variable = value_variables_begin
+    while value_variables_begin <= my_variable <= value_variable_end:
+        index_simulation = 1
+        list_index_simulations = []
         list_values = []
-        while my_var_node <= nb_nodes_end:
-            list_nodes.append(my_var_node)
-            with open(get_name_file(path_access=path_directory, name_variable=variable_name, value_node=my_var_node,
-                                    value_variable=my_variable), 'rb') as f:
+        while index_simulation <= nb_simulations:
+            list_index_simulations.append(index_simulation)
+            with open(get_name_file(path_access=path_directory, name_variable=variable_simulator[1:],
+                                    simulation_index=index_simulation, value_variable=my_variable), 'rb') as f:
                 result = f.read().decode('utf-8')
                 list_line = result.split('\n')[18:]
                 # get_proportion_infected(list_line) : renvoit le nombre maximal de noeuds qui ont été infecté à
                 # n' importe quel moment t
-                list_values.append(get_proportion_infected(list_line=list_line))
-            my_var_node += incremented_node
-        dict_result[my_variable] = list_values, list_nodes
-        my_variable += incremented_variable
-    df = DataFrame(dict_result)
-    df.to_csv(file_name_result)
-
-
-def calcul_proportion_population_infected(variable_simulator: str, nb_nodes_begin: int, nb_nodes_end: int,
-                                          incremented_node: int, values_variables_begin: int,
-                                          value_variable_end: int, incremented_variable: int,
-                                          path_directory: str, file_name_result):
-    """
-    Fonction qui me permet de calculé la proportion de la population infectée
-
-    :param file_name_result: Nom du fichier dans lequel sauvegardé le dataFrame résultat de l' analyse
-    :param variable_simulator: la variable simulé dont on veut avoir la durée
-    :param nb_nodes_begin: le nombre de noeuds initial durant la simulation de 'variable simulator'
-    :param nb_nodes_end: le nombre de noeuds final durant la simulation de 'variable simulator'
-    :param incremented_node: l' incrémentation du nombre de noeuds durant la simulation
-    :param values_variables_begin: la valeur initial de la variable simulée
-    :param value_variable_end: la valeur finale de la variable simulée
-    :param incremented_variable: la valeur d' incrémentation de la variable simulée
-    :param path_directory: le chemin d' accès aux résultats de la simulations
-
-    :return: un dataFrame contenant en index le nombre de node initial et
-                en label la valeur de la variable de simulation:
-            => index = list nodes; label = list valeurs variables; data = le nombre de snapshot
-            ex: nombre initial d'infecté: index = valeurs du nombre de nodes 100 -> 300
-                                        label = valeurs de la variable nombre initial d' infecté 1 -> 100
-    """
-
-    if variable_simulator == "infected":
-        variable_name = 'initial_infected'
-    elif variable_simulator == "travel":
-        variable_name = 'initial_travel_distance'
-    elif variable_simulator == "vaccinated":
-        variable_name = 'initial_vaccinated'
-    elif variable_simulator == "vaccine efficiency":
-        variable_name = 'vaccine_efficiency'
-    elif variable_simulator == "infection period":
-        variable_name = 'initial_infection_period'
-    elif variable_simulator == "contagion period":
-        variable_name = 'initial_contagion_period'
-    elif variable_simulator == "immune period":
-        variable_name = 'initial_immune_period'
-    else:
-        raise Exception("Variable de simulation non reconnu")
-
-    dict_result = {}
-    my_variable = values_variables_begin
-    while my_variable <= value_variable_end:
-        my_var_node = nb_nodes_begin
-        list_nodes = []
-        list_values = []
-        while my_var_node <= nb_nodes_end:
-            list_nodes.append(my_var_node)
-            with open(get_name_file(path_access=path_directory, name_variable=variable_name, value_node=my_var_node,
-                                    value_variable=my_variable), 'rb') as f:
-                result = f.read().decode('utf-8')
-                list_line = result.split('\n')[18:]
-                # get_proportion_infected(list_line) : renvoit le nombre de noeud qui ont été infecté au moins 1e fois
-                list_values.append(get_proportion_infected(list_line=list_line))
-            my_var_node += incremented_node
-        dict_result[my_variable] = list_values, list_nodes
+                if proportion_max == 0:
+                    list_values.append(get_proportion_infected(list_line=list_line))
+                else:
+                    list_values.append(get_proportion_max_infected(list_line=list_line))
+            index_simulation += 1
+        dict_result[my_variable] = list_values, list_index_simulations
         my_variable += incremented_variable
     df = DataFrame(dict_result)
     df.to_csv(file_name_result)
@@ -271,93 +188,153 @@ def get_proportion_multi_infection(list_line):
                     dict_nodes_infected[i] = 1
                     set_nodes_immune -= {i}
     return dict_nodes_infected
-#
 
 
-def calcul_proportion_multi_infection(variable_simulator: str, nb_nodes_begin: int, nb_nodes_end: int,
-                                      incremented_node: int, values_variables_begin: int,
+def calcul_proportion_multi_infection(variable_simulator: str, nb_simulations: int, value_variables_begin: int,
                                       value_variable_end: int, incremented_variable: int,
                                       path_directory: str, file_name_result):
     """
     Fonction qui me permet de calculé la distribution des multi-infections durant une épidémie
 
+    :param nb_simulations: Nombre de simulations effectué pour chaque valeur de la variable d'interet
     :param file_name_result: Nom du fichier dans lequel sauvegardé le dataFrame résultat de l' analyse
     :param variable_simulator: la variable simulé dont on veut avoir la durée
-    :param nb_nodes_begin: le nombre de noeuds initial durant la simulation de 'variable simulator'
-    :param nb_nodes_end: le nombre de noeuds final durant la simulation de 'variable simulator'
-    :param incremented_node: l' incrémentation du nombre de noeuds durant la simulation
-    :param values_variables_begin: la valeur initial de la variable simulée
+    :param value_variables_begin: la valeur initial de la variable simulée
     :param value_variable_end: la valeur finale de la variable simulée
     :param incremented_variable: la valeur d' incrémentation de la variable simulée
     :param path_directory: le chemin d' accès aux résultats de la simulations
 
     :return: un dataFrame contenant en index le nombre de node initial et
                 en label la valeur de la variable de simulation:
-            => index = list nodes; label = list valeurs variables; data = le nombre de snapshot
-            ex: nombre initial d'infecté: index = valeurs du nombre de nodes 100 -> 300
-                                        label = valeurs de la variable nombre initial d' infecté 1 -> 100
+            => index = list des numéros de la simulation; label = list valeurs variables; data = le nombre de snapshot
+            ex: nombre initial d'infecté: index = n-ième simulation 1 -> 100
+                                          label = valeurs de la variable nombre initial d' infecté 1 -> 100
     """
 
-    if variable_simulator == "infected":
-        variable_name = 'initial_infected'
-    elif variable_simulator == "travel":
-        variable_name = 'initial_travel_distance'
-    elif variable_simulator == "vaccinated":
-        variable_name = 'initial_vaccinated'
-    elif variable_simulator == "vaccine efficiency":
-        variable_name = 'vaccine_efficiency'
-    elif variable_simulator == "infection period":
-        variable_name = 'initial_infection_period'
-    elif variable_simulator == "contagion period":
-        variable_name = 'initial_contagion_period'
-    elif variable_simulator == "immune period":
-        variable_name = 'initial_immune_period'
-    else:
-        raise Exception("Variable de simulation non reconnu")
+    if variable_simulator not in {"-nb_infected", "-travel_distance", "-nb_vaccinated", "-vaccine_efficiency",
+                                  "-infection_period", "-contagion_period", "-immune_period"}:
+        raise Exception(f"Variable de simulation non reconnu {variable_simulator}")
 
     dict_result = {}
-    my_variable = values_variables_begin
-    while my_variable <= value_variable_end:
-        my_var_node = nb_nodes_begin
-        list_nodes = []
+    my_variable = value_variables_begin
+    while value_variables_begin <= my_variable <= value_variable_end:
+        index_simulation = 1
+        list_index_simulations = []
         list_values = []
-        while my_var_node <= nb_nodes_end:
-            list_nodes.append(my_var_node)
-            with open(get_name_file(path_access=path_directory, name_variable=variable_name, value_node=my_var_node,
-                                    value_variable=my_variable), 'rb') as f:
+        while index_simulation <= nb_simulations:
+            list_index_simulations.append(index_simulation)
+            with open(get_name_file(path_access=path_directory, name_variable=variable_simulator[1:],
+                                    simulation_index=index_simulation, value_variable=my_variable), 'rb') as f:
                 result = f.read().decode('utf-8')
                 list_line = result.split('\n')[18:]
-                # get_proportion_infected(list_line) : renvoit le nombre de noeud qui ont été infecté au moins 1e fois
-                list_values.append(get_proportion_infected(list_line=list_line))
-            my_var_node += incremented_node
-        dict_result[my_variable] = list_values, list_nodes
+                # get_proportion_infected(list_line) : renvoit le nombre maximal de noeuds qui ont été infecté à
+                # n' importe quel moment t
+                list_values.append(get_proportion_multi_infection(list_line=list_line))
+            index_simulation += 1
+        dict_result[my_variable] = list_values, list_index_simulations
         my_variable += incremented_variable
     df = DataFrame(dict_result)
     df.to_csv(file_name_result)
 
 
-def analyse_files(variable_simulator, file_result_during, file_result_proportion, file_result_distribution):
-    if variable_simulator == "infected":
-        variable_name = 'initial_infected'
-    elif variable_simulator == "travel":
-        variable_name = 'initial_travel_distance'
-    elif variable_simulator == "vaccinated":
-        variable_name = 'initial_vaccinated'
-    elif variable_simulator == "vaccine efficiency":
-        variable_name = 'vaccine_efficiency'
-    elif variable_simulator == "infection period":
-        variable_name = 'initial_infection_period'
-    elif variable_simulator == "contagion period":
-        variable_name = 'initial_contagion_period'
-    elif variable_simulator == "immune period":
-        variable_name = 'initial_immune_period'
+def analyse_variable(variable_simulator: str, nb_simulations: int,
+                     value_variables_begin: int, value_variable_end: int, incremented_variable: int,
+                     path_directory: str):
+
+    if variable_simulator not in {"-nb_infected", "-travel_distance", "-nb_vaccinated", "-vaccine_efficiency",
+                                  "-infection_period", "-contagion_period", "-immune_period"}:
+        raise Exception(f"Variable de simulation non reconnu {variable_simulator}")
+
+    # calcul during epidemic
+    file_result_during = f"during_epidemic_{variable_simulator}.csv"
+    calcul_during_epidemic(variable_simulator=variable_simulator, nb_simulations=nb_simulations,
+                           value_variables_begin=value_variables_begin, value_variable_end=value_variable_end,
+                           incremented_variable=incremented_variable, path_directory=path_directory,
+                           file_name_result=file_result_during)
+
+    # calcul proportion population infected
+    if variable_simulator == "-nb_infected":
+        file_result_proportion_population_infected = f"proportion_population_max_infected{variable_simulator}.csv"
+        p_max = 1
     else:
-        raise Exception("Variable de simulation non reconnu")
+        file_result_proportion_population_infected = f"proportion_population_infected{variable_simulator}.csv"
+        p_max = 0
+    calcul_proportion_population_infected(variable_simulator=variable_simulator, proportion_max=p_max,
+                                          nb_simulations=nb_simulations,
+                                          value_variables_begin=value_variables_begin,
+                                          value_variable_end=value_variable_end,
+                                          incremented_variable=incremented_variable,
+                                          path_directory=path_directory,
+                                          file_name_result=file_result_proportion_population_infected)
 
-    calcul_during_epidemic(variable_simulator='infected', nb_nodes_begin=100, nb_nodes_end=500,
-                           incremented_node=10, values_variables_begin=1, value_variable_end=100,
-                           incremented_variable=1, path_directory='infected', file_name_result=file_result_during)
+    # calcul proportion multi-infection
+    file_result_proportion_multi_infection = f"proportion_multi_infection{variable_simulator}.csv"
+    calcul_proportion_multi_infection(variable_simulator=variable_simulator, nb_simulations=nb_simulations,
+                                      value_variables_begin=value_variables_begin,
+                                      value_variable_end=value_variable_end,
+                                      incremented_variable=incremented_variable,
+                                      path_directory=path_directory,
+                                      file_name_result=file_result_proportion_multi_infection)
 
 
-def analyse_nb_infected(file_csv_during):
-    df = read_csv(file_csv_during, index_col=0)
+if __name__ == '__main__':
+    all_variables = {"-nb_infected": {"variable_simulator": "-nb_infected",
+                                      "nb_simulations": 100,
+                                      "value_variables_begin": 1,
+                                      "value_variable_end": 10,
+                                      "incremented_variable": 1,
+                                      "path_directory": "result_simulations/infected"},
+                     "-travel_distance": {"variable_simulator": "-travel_distance",
+                                          "nb_simulations": 100,
+                                          "value_variables_begin": 150,
+                                          "value_variable_end": 250,
+                                          "incremented_variable": 10,
+                                          "path_directory": "result_simulations/travel_distance"},
+                     "-nb_vaccinated": {"variable_simulator": "-nb_vaccinated",
+                                        "nb_simulations": 100,
+                                        "value_variables_begin": 0,
+                                        "value_variable_end": 10,
+                                        "incremented_variable": 1,
+                                        "path_directory": "result_simulations/nb_vaccinated"},
+                     "-vaccine_efficiency": {"variable_simulator": "-vaccine_efficiency",
+                                             "nb_simulations": 100,
+                                             "value_variables_begin": 1,
+                                             "value_variable_end": 10,
+                                             "incremented_variable": 1,
+                                             "path_directory": "result_simulations/vaccine_efficiency"},
+                     "-infection_period": {"variable_simulator": "-infection_period",
+                                           "nb_simulations": 100,
+                                           "value_variables_begin": 50,
+                                           "value_variable_end": 150,
+                                           "incremented_variable": 10,
+                                           "path_directory": "result_simulations/infection_period"},
+                     "-contagion_period": {"variable_simulator": "-contagion_period",
+                                           "nb_simulations": 100,
+                                           "value_variables_begin": 150,
+                                           "value_variable_end": 300,
+                                           "incremented_variable": 10,
+                                           "path_directory": "result_simulations/contagion_period"},
+                     "-immune_period": {"variable_simulator": "-immune_period",
+                                        "nb_simulations": 100,
+                                        "value_variables_begin": 200,
+                                        "value_variable_end": 400,
+                                        "incremented_variable": 10,
+                                        "path_directory": "result_simulations/immune_period"},
+                     "-nb_nodes": {"variable_simulator": "-nb_nodes",
+                                   "nb_simulations": 100,
+                                   "value_variables_begin": 100,
+                                   "value_variable_end": 150,
+                                   "incremented_variable": 10,
+                                   "path_directory": "result_simulations/nodes"}
+                     }
+
+    for variable in all_variables.keys():
+        param = all_variables[variable]
+        threading.Thread(target=analyse_variable,
+                         args=(param['variable_simulator'],
+                               param['nb_simulations'],
+                               param['value_variables_begin'],
+                               param['value_variable_end'],
+                               param['incremented_variable'],
+                               param['path_directory'], )
+                         ).start()
