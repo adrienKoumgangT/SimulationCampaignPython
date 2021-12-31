@@ -74,16 +74,16 @@ def get_info_nb_values(name_var: int):
 
 def get_info_values_var(name_var: int):
     if name_var == 0:
-        # var = "nb nodes; nb = 1 []; shift = 1
+        # var = "nb nb_nodes; nb = 1 []; shift = 1
         return 100, 150, 10
     if name_var == 1:
-        # var = "nb infected"; nb = 10 [1 -> 10]; shift = 1
+        # var = "nb nb_infected"; nb = 10 [1 -> 10]; shift = 1
         return 1, 10, 1
     elif name_var == 2:
         # var = "travel distance"; nb = 11 [150 -> 250]; shift = 10
         return 150, 250, 10
     elif name_var == 3:
-        # var = "nb vaccinated"; nb = 11 [0 -> 10]; shift = 1
+        # var = "nb nb_vaccinated"; nb = 11 [0 -> 10]; shift = 1
         return 0, 10, 1
     elif name_var == 4:
         # var = "vaccine efficiency"; nb = 10 [1 -> 10]; shift = 1
@@ -118,8 +118,7 @@ def run_simulator(variable_interest: str, variable_value_begin: int, variable_va
         while simulation_index <= nb_simulation_to_do:
             print(f"\t\t --> simulation n. {simulation_index}")
             res = subprocess.run(list_arg, capture_output=True)
-            # TODO: change name file to result
-            with open(f"{path_directory}res_{variable_interest[1:]}_{var_value}_simulation_n_{simulation_index}.txt",
+            with open(f"{path_directory}{variable_interest[1:]}_{var_value}_simulation_n_{simulation_index}.txt",
                       'w') as file_result:
                 file_result.write(res.stdout.decode('utf-8'))
             simulation_index += 1
@@ -140,7 +139,7 @@ def run_simulator(variable_interest: str, variable_value_begin: int, variable_va
 
 
 if __name__ == '__main__':
-    # variable par défaut de la simulation : nb nodes
+    # variable par défaut de la simulation : nb nb_nodes
     name_variable = 0
     var_interest = "-nb_nodes"
     # valeurs par défaut pour le nombre de de simulation à faire pour chaque valeur de la variable d' interet

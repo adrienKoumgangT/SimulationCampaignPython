@@ -2,7 +2,7 @@
 
 # définition des paramètres à passer au simulateur pour la variable immune_period
 n_v="-name_var=7"
-n_o_s="-number_of_simulation=50"
+n_o_s="-number_of_simulation=100"
 v_v_b="-variable_value_begin=200"
 v_v_e="-variable_value_end=400"
 v_v_i="-var_value_incremented=20"

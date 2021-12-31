@@ -2,7 +2,7 @@
 
 # définition des paramètres à passer au simulateur pour la variable vaccine_efficiency
 n_v="-name_var=4"
-n_o_s="-number_of_simulation=50"
+n_o_s="-number_of_simulation=100"
 v_v_b="-variable_value_begin=1"
 v_v_e="-variable_value_end=10"
 v_v_i="-var_value_incremented=1"
