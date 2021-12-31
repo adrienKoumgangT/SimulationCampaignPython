@@ -546,12 +546,212 @@ public class VirusNode extends Node{
 ```
 
 
-## Présentation du code source 'Simulation Campaign'
+## Présentation des parties principales de 'Simulation Campaign'
 
-### Simulator
+### La simulation
 
+Elle se fait grace au code source [simulator.py](src/simulator/simulator.py).
+Ce fichier python permet l'exécution d'un ensemble de simulation en fonction d'une variable passé en ligne de
+commande au programme et aussi d'un ensemble de paramètres, tout aussi passé en ligne de commande lors du lancement
+de l'exécution du programme. La syntax générale d'exécution du programme de simulation est la suivante:
+> python3 -name_var=name [-number_of_simulation=x]
+>                         [-variable_value_begin=x] [-variable_value_end=x] [-var_value_incremented=x]
+>                         [-other_interest_var=list_var]
+>                         [-path_save_result=pathname]
 
-### Analyse
+- name_var: [name] name of the variable of interest
+  - [=0] for nb nodes
+  - [=1] for nb infected
+  - [=2] for travel distance
+  - [=3] for nb vaccinated
+  - [=4] for vaccine efficiency
+  - [=5] for infection period
+  - [=6] for contagion period
+  - [=7] for immune period
+  - [=x] number of simulations to do for each value of the variable of interest
+- variable_value_begin:  [=x] initial value for variable simulation for the simulations
+- variable_value_end:    [=x] final value for variable simulation for the simulations
+- var_value_incremented: [=x] increment value for variable simulation
+- other_interest_var:    [=list_var] list of other parameters to switch to the simulator. ex: -stop_all_sane=1,-gui=0,-printout=2
+- path_save_result:      [=pathname] path to directory where save file to result of the simulator
 
+Ces informations peuvent etre obtenu depuis le code source en l'exécutant sans arguments.
+
+Pour ce projet, nous nous sommes interesés à 8 variables et créer des fichiers 'bash' pour chacune d'elle
+enfin d'y passer des paramètres exact pour leur simulation:
+- contagion_period ([var_contagion_period_simulation.sh](src/simulator/var_contagion_period_simulation.sh)):
+  - name_var = 6
+  - nombre de simulations = 50
+  - valeur de début = 150
+  - valeur de fin = 300
+  - shift = 10
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/contagion_period'
+- immune_period ([var_immune_period_simulation.sh](src/simulator/var_immune_period_simulation.sh))
+  - name_var = 7
+  - nombre de simulations = 100
+  - valeur de début = 200
+  - valeur de fin = 400
+  - shift = 20
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/immune_period'
+- nb_infected ([var_nb_infected_simulation.sh](src/simulator/var_nb_infected_simulation.sh))
+  - name_var = 1
+  - nombre de simulations = 100
+  - valeur de début = 1
+  - valeur de fin = 10
+  - shift = 1
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/nb_infected'
+- infection_period ([var_infection_period_simulation.sh](src/simulator/var_infection_period_simulation.sh))
+  - name_var = 5
+  - nombre de simulations = 100
+  - valeur de début = 50
+  - valeur de fin = 150
+  - shift = 10
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/infection_period'
+- nb_nodes ([var_nb_nodes_simulation.sh](src/simulator/var_nb_nodes_simulation.sh))
+  - name_var = 0
+  - nombre de simulations = 100
+  - valeur de début = 100
+  - valeur de fin = 150
+  - shift = 10
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/nb_nodes'
+- travel_distance ([var_travel_distance_simulation.sh](src/simulator/var_travel_distance_simulation.sh))
+  - name_var = 2
+  - nombre de simulations = 100
+  - valeur de début = 150
+  - valeur de fin = 250
+  - shift = 10
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/travel_distance'
+- nb_vaccinated ([var_nb_vaccinated_simulation.sh](src/simulator/var_nb_vaccinated_simulation.sh))
+  - name_var = 3
+  - nombre de simulations = 100
+  - valeur de début = 0
+  - valeur de fin = 10
+  - shift = 1
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/nb_vaccinated'
+- vaccine_efficiency ([var_vaccine_efficiency_simulation.sh](src/simulator/var_vaccine_efficiency._simulation.sh))
+  - name_var = 4
+  - nombre de simulations = 100
+  - valeur de début = 1
+  - valeur de fin = 10
+  - shift = 1
+  - paramètres à passer au simulateur: '-stop_all_sane=1, -gui=0, -printout=2'
+  - dossiers de sauvegardes des fichiers résultats des simulations : 'result_simulations/vaccine_efficiency'
+
+Le programme de simulation offre un feedback de 2 niveaux :
+- le premier : il affiche les paramètres passés au simulateur
+- le deuxième : pour chaque valeur de la variable de simulation, il indique à quelle simulation il se situe
+
+Nous avons choisit d'implementer le simulateur de cette manière enfin de permettre la simulation précise d'une variable
+ainsi que de ses valeurs aux choix. (Ceci dû au tant que prend les simulations, cela nous a permit de lancer une
+simulation puis de l'arreter pour la relancer plus tard, donnant ainsi une grande flexibilité dans l'exécution des
+simulations)
+
+### L'analyse des simulations
+
+Elle se fait grâce au code source [analyse.py](src/analyse/analyse.py).
+Ici, l'analyse des fichiers résultats de la simulation se fait en parallèle pour chaque variable.
+Ainsi on a un thread qui s'occupe de l'analyse de chaque variable.
+
+L'analyse des fichiers est orienté principalement sur 3 points :
+- Calcul de la durée de chaque simulation. Et elle se fait grâce à la fonction 'calcul_during_epidemic'.
+Ici nous avons choisi de calculer la durée en nombre de snapshot, ainsi la durée n'est point exprimé en temps mais en nb shapshot.
+- La proportion (max ou pas) de la population infectée. Et elle se fait grâce à la fonction 'calcul_proportion_population_infected'.
+Ici nous faisons le calcul en déterminant le nombre d'infecté que nous avons à un moment t (ici fesant référence à un snapshot)
+et pour la proportion simple, nous prenons la valeur moyenne et pour celle max, nous prennons le maximum obtenu.
+  - Le cas de calcul de la proportion max fait référence à la simulation du nombre initial d'infecté
+- La proportion des multi-infections. Et elle se fait grâce à la fonction 'calcul_proportion_multi_infection'.
+Ici nous faisons le calcul en déterminant le nombre de fois qu'un node est infecté durant toute la durée de la simulation.
+
+Les résultats ainsi obtenus (sous forme de tableaux) sont sauvegardés dans des fichiers:
+- nb_infected:
+  - dossier: result_analyse/nb_infected
+  - durée: infected_during.csv
+  - proportion population infected: infected_proportion.csv
+  - multi infection: infected_multi_infection.csv
+- travel_distance:
+  - dossier: result_analyse/travel_distance
+  - durée: travel_distance_during.csv
+  - proportion population infected: travel_distance_proportion.csv
+  - multi infection: travel_distance_multi_infection.csv
+- nb_vaccinated:
+  - dossier: result_analyse/nb_vaccinated
+  - durée: vaccinated_during.csv
+  - proportion population infected: vaccinated_proportion.csv
+  - multi infection: vaccinated_multi_infection.csv
+- vaccine_efficiency:
+  - dossier: result_analyse/vaccine_efficiency
+  - durée: vaccine_efficiency_during.csv
+  - proportion population infected: vaccine_efficiency_proportion.csv
+  - multi infection: vaccine_efficiency_multi_infection.csv
+- infection_period:
+  - dossier: result_analyse/infection_period
+  - durée: infection_period_during.csv
+  - proportion population infected: infection_period_proportion.csv
+  - multi infection: infection_period_multi_infection.csv
+- contagion_period:
+  - dossier: result_analyse/contagion_period
+  - durée: contagion_period_during.csv
+  - proportion population infected: contagion_period_proportion.csv
+  - multi infection: contagion_period_multi_infection.csv
+- immune_period:
+  - dossier: result_analyse/immune_period
+  - durée: immune_period_during.csv
+  - proportion population infected: immune_period_proportion.csv
+  - multi infection: immune_period_multi_infection.csv
+- nb_nodes:
+  - dossier: result_analyse/nb_nodes
+  - durée: nodes_during.csv
+  - proportion population infected: nodes_proportion.csv
+  - multi infection: nodes_multi_infection.csv
 
 ### Data graph
+
+Elle se fait grâce au code source [analyse.py](src/analyse/analyse.py) et se fait directement après l'analyse des simulations.
+Les résultats ainsi obtenus (graph) sont sauvegardés dans des fichiers:
+- nb_infected:
+  - dossier: result_analyse/nb_infected
+  - durée: infected_during.pdf
+  - proportion population infected: infected_proportion.pdf
+  - multi infection: infected_multi_infection.pdf
+- travel_distance:
+  - dossier: result_analyse/travel_distance
+  - durée: travel_distance_during.pdf
+  - proportion population infected: travel_distance_proportion.pdf
+  - multi infection: travel_distance_multi_infection.pdf
+- nb_vaccinated:
+  - dossier: result_analyse/nb_vaccinated
+  - durée: vaccinated_during.pdf
+  - proportion population infected: vaccinated_proportion.pdf
+  - multi infection: vaccinated_multi_infection.pdf
+- vaccine_efficiency:
+  - dossier: result_analyse/vaccine_efficiency
+  - durée: vaccine_efficiency_during.pdf
+  - proportion population infected: vaccine_efficiency_proportion.pdf
+  - multi infection: vaccine_efficiency_multi_infection.pdf
+- infection_period:
+  - dossier: result_analyse/infection_period
+  - durée: infection_period_during.pdf
+  - proportion population infected: infection_period_proportion.pdf
+  - multi infection: infection_period_multi_infection.pdf
+- contagion_period:
+  - dossier: result_analyse/contagion_period
+  - durée: contagion_period_during.pdf
+  - proportion population infected: contagion_period_proportion.pdf
+  - multi infection: contagion_period_multi_infection.pdf
+- immune_period:
+  - dossier: result_analyse/immune_period
+  - durée: immune_period_during.pdf
+  - proportion population infected: immune_period_proportion.pdf
+  - multi infection: immune_period_multi_infection.pdf
+- nb_nodes:
+  - dossier: result_analyse/nb_nodes
+  - durée: nodes_during.pdf
+  - proportion population infected: nodes_proportion.pdf
+  - multi infection: nodes_multi_infection.pdf
